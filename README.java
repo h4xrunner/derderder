@@ -1,377 +1,408 @@
-public class Lab10 {
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+
+/**
+ * CS201 – Data Structures
+ * Lab 11 – Red-Black Trees
+ *
+ * In this lab, you will:
+ * - Implement a Red-Black Tree
+ * - Maintain all RB Tree insertion properties
+ * - Implement recoloring and rotations
+ * - Ensure the tree remains balanced after each insertion
+ *
+ */
+
+public class Lab110 {
     public static void main(String[] args) {
+        RBTree<Integer> tree = new RBTree<>();
+        /* tree.insert(33);
+        tree.insert(13);
+        tree.insert(53);
+        tree.insert(11);
+        tree.insert(21);
+        tree.insert(41);
+        tree.insert(61);
+        tree.insert(15);
+        tree.insert(31); */
 
-        // You may test your BST and AVL implementations here.
-        // Official testing will be done using JUnit.
+        /* tree.insert(50);
+        tree.insert(20);
+        tree.insert(10); */
 
+        /* tree.insert(36);
+        tree.insert(15);
+        tree.insert(50);
+        tree.insert(70);
+        tree.insert(5);
+        tree.insert(30);
+        tree.insert(3);
+        tree.insert(6);
+        tree.insert(23);
+        tree.insert(33);
+        tree.insert(32); */
+        System.out.println(tree);
+
+        // You may test manually here if you want.
+        // Official testing will be done using JUnit tests.
     }
 }
 
-// ---------------------------------------------
-// Node
-// ---------------------------------------------
-class Node<E extends Comparable<E>> {
+class Node<E> {
     E data;
-    Node<E> left;
-    Node<E> right;
-    int height;
+    Node<E> left, right, parent;
+    boolean color = true;   // true = RED, false = BLACK
 
-    Node(E data) {
+    public Node(E data) {
         this.data = data;
-        this.height = 1; // for AVL
+        this.color = true;  // new nodes start red
+    }
+
+    @Override
+    public String toString() {
+        return String.format("[%s|%s]", data, color ? "R" : "B");
     }
 }
 
-// ---------------------------------------------
-// IBST
-// ---------------------------------------------
-interface IBST<E extends Comparable<E>> {
-    void insert(E element);
-    void remove(E element);
-    boolean contains(E element);
-    int size();
+interface IList<E> {
     boolean isEmpty();
-
-    Node<E> findMin(Node<E> n);
+    int size();
 }
 
-// ---------------------------------------------
-// IAVL
-// ---------------------------------------------
-interface IAVL<E extends Comparable<E>> extends IBST<E> {
-    int height();
-    int getBalanceFactor(Node<E> node);
+interface ITree<E> extends IList<E> {
+    void insert(E data);
+    boolean contains(E data);
+    //void remove(E data);
+}
 
-    Node<E> balance(Node<E> node);
-
-    Node<E> rotateLeft(Node<E> node);
+interface IBalancedTree<E> extends ITree<E> {
     Node<E> rotateRight(Node<E> node);
-    Node<E> rotateLeftRight(Node<E> node);
-    Node<E> rotateRightLeft(Node<E> node);
+    Node<E> rotateLeft(Node<E> node);
 }
 
-// ---------------------------------------------
-// BST Implementation (Unbalanced)
-// ---------------------------------------------
-class BST<E extends Comparable<E>> implements IBST<E> {
+interface IRBTree<E> extends IBalancedTree<E> {
+    void check(Node<E> node);
+    Node<E> balance(Node<E> node);
+    void recolor(Node<E> node);
+}
 
-    protected Node<E> root;
-    protected int size;
+class RBTree<E extends Comparable<E>> implements IRBTree<E> {
+    private Node<E> root;
+    private int size;
+
+    public RBTree() {}
+
+    @Override
+    public boolean isEmpty() {
+        // TODO: Return true if the tree is empty, false otherwise.
+        return root == null;
+    }
 
     @Override
     public int size() {
+        // TODO: Return the number of elements in the tree.
         return size;
     }
 
     @Override
-    public boolean isEmpty() {
-        return size == 0;
-    }
-
-    @Override
-    public boolean contains(E element) {
-        return containsRec(root, element);
-    }
-
-    protected boolean containsRec(Node<E> n, E e) {
-        // TODO: implement recursive search
-        if (n == null) {
-            return false;
-        }
-        int comp = e.compareTo(n.data);
-        if (comp < 0) {
-            return containsRec(n.left, e);
-        } else if (comp > 0) {
-            return containsRec(n.right, e);
-        } else {
-            return true;
-        }
-    }
-
-    @Override
-    public void insert(E element) {
-        root = insertRec(root, element);
-    }
-
-    protected Node<E> insertRec(Node<E> n, E e) {
-        // TODO: standard BST insert (no balancing)
-        if (n == null) {
-            size++;
-            return new Node<>(e);
-        }
-        int comp = e.compareTo(n.data);
-        if (comp < 0) {
-            n.left = insertRec(n.left, e);
-        } else if (comp > 0) {
-            n.right = insertRec(n.right, e);
-        }
-        return n;
-    }
-
-    @Override
-    public void remove(E element) {
-        root = removeRec(root, element);
-    }
-
-    protected Node<E> removeRec(Node<E> n, E e) {
-        // TODO: BST remove (3 cases)
-        if (n == null) {
-            return null;
-        }
-
-        int comp = e.compareTo(n.data);
-        if (comp < 0) {
-            n.left = removeRec(n.left, e);
-        } else if (comp > 0) {
-            n.right = removeRec(n.right, e);
-        } else {
-            if (n.left == null) {
-                size--;
-                return n.right;
-            } else if (n.right == null) {
-                size--;
-                return n.left;
-            }
-
-            Node<E> temp = findMin(n.right);
-            n.data = temp.data;
-            n.right = removeRec(n.right, temp.data);
-        }
-        return n;
-    }
-
-    @Override
-    public Node<E> findMin(Node<E> n) {
-        // TODO: return leftmost node
-        if (n == null) {
-            return null;
-        }
-        while (n.left != null) {
-            n = n.left;
-        }
-        return n;
-    }
-}
-
-// ---------------------------------------------
-// AVL Implementation (Balanced BST)
-// ---------------------------------------------
-class AVLTree<E extends Comparable<E>>
-        extends BST<E>
-        implements IAVL<E> {
-
-    @Override
-    protected Node<E> insertRec(Node<E> n, E e) {
-        // TODO:
-        // 1) perform BST insert
-        // 2) update height
-        // 3) return balance(n)
-        if (n == null) {
-            size++;
-            return new Node<>(e);
-        }
-
-        int comp = e.compareTo(n.data);
-        if (comp < 0) {
-            n.left = insertRec(n.left, e);
-        } else if (comp > 0) {
-            n.right = insertRec(n.right, e);
-        } else {
-            return n;
-        }
-
-        updateHeight(n);
-        return balance(n);
-    }
-
-    @Override
-    protected Node<E> removeRec(Node<E> n, E e) {
-        // TODO:
-        // 1) perform BST remove
-        // 2) update height
-        // 3) return balance(n)
-        if (n == null) {
-            return null;
-        }
-
-        int comp = e.compareTo(n.data);
-        if (comp < 0) {
-            n.left = removeRec(n.left, e);
-        } else if (comp > 0) {
-            n.right = removeRec(n.right, e);
-        } else {
-            if (n.left == null) {
-                size--;
-                return n.right;
-            } else if (n.right == null) {
-                size--;
-                return n.left;
-            }
-
-            Node<E> temp = findMin(n.right);
-            n.data = temp.data;
-            n.right = removeRec(n.right, temp.data);
+    public Node<E> rotateLeft(Node<E> node) {
+        // TODO: Implement Left Rotation.
+        // 1. Identify the right child.
+        // 2. Turn the right child's left subtree into node's right subtree.
+        // 3. Update the parent pointer of that subtree (if it exists).
+        // 4. Link the new root (right child) to the node's parent.
+        //    (Be careful to check if node was the Root, or a left/right child).
+        // 5. Put 'node' as the left child of the new root.
+        // 6. Update parent pointers for both 'node' and the new root.
+        
+        Node<E> rightKid = node.right;
+        node.right = rightKid.left;
+        
+        if (rightKid.left != null) {
+            rightKid.left.parent = node;
         }
         
-        if (n != null) {
-            updateHeight(n);
-            return balance(n);
+        rightKid.parent = node.parent;
+        
+        if (node.parent == null) {
+            root = rightKid;
+        } else if (node == node.parent.left) {
+            node.parent.left = rightKid;
+        } else {
+            node.parent.right = rightKid;
         }
+        
+        rightKid.left = node;
+        node.parent = rightKid;
+        
+        return rightKid;
+    }
+
+    @Override
+    public Node<E> rotateRight(Node<E> node) {
+        // TODO: Implement Right Rotation.
+        // 1. Identify the left child.
+        // 2. Turn the left child's right subtree into node's left subtree.
+        // 3. Update parent pointers.
+        // 4. Link the new root to the node's parent (Handle Root case).
+        // 5. Put 'node' as the right child of the new root.
+        // 6. Update parent pointers.
+
+        Node<E> leftKid = node.left;
+        node.left = leftKid.right;
+        
+        if (leftKid.right != null) {
+            leftKid.right.parent = node;
+        }
+        
+        leftKid.parent = node.parent;
+        
+        if (node.parent == null) {
+            root = leftKid;
+        } else if (node == node.parent.right) {
+            node.parent.right = leftKid;
+        } else {
+            node.parent.left = leftKid;
+        }
+        
+        leftKid.right = node;
+        node.parent = leftKid;
+        
+        return leftKid;
+    }
+
+    private boolean isRed(Node<E> node) {
+        // TODO: Helper method.
+        // Return true if node is not null AND node.color is true.
+        // Return false otherwise (null nodes are Black).
+        return node != null && node.color == true;
+    }
+
+    private Node<E> getSibling(Node<E> node) {
+        // TODO: Helper method.
+        // If node is root, return null.
+        // Return the other child of node's parent.
+        if (node == null || node.parent == null) {
+            return null;
+        }
+        
+        if (node == node.parent.left) {
+            return node.parent.right;
+        } else {
+            return node.parent.left;
+        }
+    }
+
+    @Override
+    public void insert(E data) {
+        // TODO: Public insert method.
+        // 1. Handle empty tree case (Create root, increment size, force Black).
+        // 2. If not empty, call insertRec(root, data).
+        // 3. Ensure root is always Black at the end.
+        
+        if (root == null) {
+            root = new Node<>(data);
+            root.color = false;
+            size++;
+            return;
+        }
+        
+        insertRec(root, data);
+        root.color = false;
+    }
+
+    private void insertRec(Node<E> node, E data) {
+        // TODO: Recursive insertion (Standard BST logic).
+        // 1. Compare data with node.data.
+        // 2. Recurse Left or Right.
+        // 3. Base Case: If the spot is null, create a new Node, link it to parent.
+        // 4. CRITICAL: After creating the node, trigger check(newNode) to fix RB properties.
+        // Note: Do not use return values to link nodes (use parent pointers).
+        
+        int cmp = data.compareTo(node.data);
+        
+        if (cmp < 0) {
+            if (node.left == null) {
+                Node<E> freshNode = new Node<>(data);
+                node.left = freshNode;
+                freshNode.parent = node;
+                size++;
+                check(freshNode);
+            } else {
+                insertRec(node.left, data);
+            }
+        } else if (cmp > 0) {
+            if (node.right == null) {
+                Node<E> freshNode = new Node<>(data);
+                node.right = freshNode;
+                freshNode.parent = node;
+                size++;
+                check(freshNode);
+            } else {
+                insertRec(node.right, data);
+            }
+        }
+    }
+
+    @Override
+    public void check(Node<E> newNode) {
+        // TODO: The "Fixer" method.
+        // 1. Check if we have a violation (Is my parent Red?).
+        // 2. If valid, return.
+        // 3. If invalid, get the Uncle.
+        // 4. Case 1: Uncle is Red -> call recolor(), then recursively call check(grandparent).
+        // 5. Case 2/3: Uncle is Black -> call balance().
+        
+        if (newNode == null || newNode.parent == null || !isRed(newNode.parent)) {
+            return;
+        }
+        
+        Node<E> dad = newNode.parent;
+        Node<E> grandpa = dad.parent;
+        
+        if (grandpa == null) {
+            return;
+        }
+        
+        Node<E> unc = getSibling(dad);
+        
+        if (isRed(unc)) {
+            recolor(grandpa);
+            check(grandpa);
+        } else {
+            balance(newNode);
+        }
+    }
+
+    @Override
+    public void recolor(Node<E> grandParent) {
+        // TODO: Case 1 Implementation.
+        // 1. Set Grandparent to Red (if not root).
+        // 2. Set Parent to Black.
+        // 3. Set Uncle to Black.
+        
+        if (grandParent != root) {
+            grandParent.color = true;
+        }
+        
+        if (grandParent.left != null) {
+            grandParent.left.color = false;
+        }
+        
+        if (grandParent.right != null) {
+            grandParent.right.color = false;
+        }
+    }
+
+    @Override
+    public Node<E> balance(Node<E> newNode) {
+        // TODO: Case 2 & 3 Implementation (Rotations).
+        // 1. Identify Parent and Grandparent.
+        // 2. Determine if Parent is a Left or Right child.
+        // 3. Determine if newNode is a Left or Right child (Inner vs Outer).
+        // 4. Perform Rotations:
+        //    - LL: rotateRight(grandParent)
+        //    - RR: rotateLeft(grandParent)
+        //    - LR: rotateLeft(parent) then rotateRight(grandParent)
+        //    - RL: rotateRight(parent) then rotateLeft(grandParent)
+        // 5. SWAP COLORS:
+        //    - The new root of this subtree becomes Black.
+        //    - The old Grandparent becomes Red.
+        // 6. Return the new subtree root.
+        
+        Node<E> dad = newNode.parent;
+        Node<E> grandpa = dad.parent;
+        
+        Node<E> newBoss = null;
+        
+        if (dad == grandpa.left) {
+            if (newNode == dad.right) {
+                rotateLeft(dad);
+                newNode = dad;
+                dad = newNode.parent;
+            }
+            newBoss = rotateRight(grandpa);
+        } else {
+            if (newNode == dad.left) {
+                rotateRight(dad);
+                newNode = dad;
+                dad = newNode.parent;
+            }
+            newBoss = rotateLeft(grandpa);
+        }
+        
+        newBoss.color = false;
+        grandpa.color = true;
+        
+        return newBoss;
+    }
+
+    @Override
+    public boolean contains(E data) {
+        return containsRec(root, data) != null;
+    }
+
+    private Node<E> containsRec(Node<E> node, E data) {
+        // TODO: Standard BST Search
+        if (node == null) {
+            return null;
+        }
+        
+        int cmp = data.compareTo(node.data);
+        
+        if (cmp < 0) {
+            return containsRec(node.left, data);
+        } else if (cmp > 0) {
+            return containsRec(node.right, data);
+        } else {
+            return node;
+        }
+    }
+
+    /* public void remove(E data) {
+        // Optional 
+    }
+
+    private Node<E> findMin(Node<E> node) {
+        // Helper for remove
         return null;
-    }
+    } */
 
-    // -------------------------------------
-    // AVL Helpers
-    // -------------------------------------
+    public void BFS(List<Node<E>> list) {
+        Queue<Node<E>> q = new LinkedList<>();
+        q.offer(root);
 
-    private void updateHeight(Node<E> n) {
-        // TODO: recompute this node's height based on its children
-        if (n != null) {
-            n.height = 1 + Math.max(height(n.left), height(n.right));
-        }
-    }
-
-
-    @Override
-    public int height() {
-        // TODO: return height(root)
-        return height(root);
-    }
-
-    private int height(Node<E> n) {
-        // TODO: null -> 0, else n.height
-        return (n == null) ? 0 : n.height;
-    }
-
-    @Override
-    public int getBalanceFactor(Node<E> n) {
-        // TODO: compare heights of left and right subtrees
-        return (n == null) ? 0 : height(n.left) - height(n.right);
-    }
-
-
-    @Override
-    public Node<E> balance(Node<E> n) {
-        // TODO:
-        // 1) compute how unbalanced this node is (balance factor)
-        //
-        // 2) If the left subtree is taller than the right:
-        //      - look at the LEFT child:
-        //        a) if the left child also leans to its LEFT,
-        //           perform a single RIGHT rotation
-        //              (the left child becomes the new root of this subtree)
-        //        b) if the left child leans to its RIGHT,
-        //           first rotate the left child LEFT,
-        //           then rotate this node RIGHT
-        //
-        // 3) If the right subtree is taller than the left:
-        //      - look at the RIGHT child:
-        //        a) if the right child also leans to its RIGHT,
-        //           perform a single LEFT rotation
-        //              (the right child becomes the new root of this subtree)
-        //        b) if the right child leans to its LEFT,
-        //           first rotate the right child RIGHT,
-        //           then rotate this node LEFT
-        //
-        // 4) return the new root of this subtree after rotations
-        if (n == null) return null;
-
-        int bf = getBalanceFactor(n);
-
-        if (bf > 1) {
-            if (getBalanceFactor(n.left) >= 0) {
-                return rotateRight(n);
-            } else {
-                return rotateLeftRight(n);
+        while(!q.isEmpty()) {
+            Node<E> current = q.poll();
+            list.add(current);
+            if (current != null) {
+                q.offer(current.left);
+                q.offer(current.right);
             }
         }
+    }
 
-        if (bf < -1) {
-            if (getBalanceFactor(n.right) <= 0) {
-                return rotateLeft(n);
-            } else {
-                return rotateRightLeft(n);
-            }
+    @Override
+    public String toString() {
+        LinkedList<Node<E>> list = new LinkedList<>();
+        this.BFS(list);
+
+        StringBuilder sbNodes = new StringBuilder();
+        StringBuilder sbIndexes = new StringBuilder();
+
+        for (int i = 0; i < list.size(); i++) {
+            Node<E> node = list.get(i);
+
+            String nodeStr = (node == null) ? "[null|B]" : node.toString();
+            String indexStr = String.valueOf(i);
+            int columnWidth = Math.max(nodeStr.length(), indexStr.length()) + 2;
+            String formatSpecifier = "%-" + columnWidth + "s";
+            
+            sbNodes.append(String.format(formatSpecifier, nodeStr));
+            sbIndexes.append(String.format(formatSpecifier, indexStr));
         }
 
-        return n;
-    }
-
-    // -------------------------------------
-    // Rotations
-    // -------------------------------------
-
-    @Override
-    public Node<E> rotateLeft(Node<E> y) {
-        // TODO:
-        // Left rotation:
-        // The right child becomes the new root of this subtree,
-        // the original root becomes the left child of that node,
-        // and the left subtree of the new root must be reattached
-        // as the right subtree of the old root.
-        //
-        // Visually:
-        //        y                     x
-        //         \                   / \
-        //          x      --->       y   R
-        //         / \                 \
-        //        L   R                L
-        //
-        // After rearranging, update heights of affected nodes
-        // and return the new subtree root.
-        Node<E> x = y.right;
-        Node<E> t = x.left;
-
-        x.left = y;
-        y.right = t;
-
-        updateHeight(y);
-        updateHeight(x);
-
-        return x;
-    }
-
-    @Override
-    public Node<E> rotateRight(Node<E> x) {
-        // TODO:
-        // Right rotation:
-        // The left child becomes the new root of this subtree,
-        // the original root becomes the right child of that node,
-        // and the right subtree of the new root must be reattached
-        // as the left subtree of the old root.
-        //
-        // Visually:
-        //        x                     y
-        //       /                     / \
-        //      y         --->        L   x
-        //     / \                       /
-        //    L   R                     R
-        //
-        // After rearranging, update heights of affected nodes
-        // and return the new subtree root.
-        Node<E> y = x.left;
-        Node<E> t = y.right;
-
-        y.right = x;
-        x.left = t;
-
-        updateHeight(x);
-        updateHeight(y);
-
-        return y;
-    }
-
-    @Override
-    public Node<E> rotateLeftRight(Node<E> n) {
-        // TODO: LR = rotateLeft(left) then rotateRight
-        n.left = rotateLeft(n.left);
-        return rotateRight(n);
-    }
-
-    @Override
-    public Node<E> rotateRightLeft(Node<E> n) {
-        // TODO: RL = rotateRight(right) then rotateLeft
-        n.right = rotateRight(n.right);
-        return rotateLeft(n);
+        return sbNodes.toString() + "\n" + sbIndexes.toString();
     }
 }
