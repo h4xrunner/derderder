@@ -5,6 +5,7 @@ public class Lab12 {
     public static void main(String[] args) {
         // You may test your graph here manually.
         // Official testing will be done with JUnit.
+        
     }
 }
 
@@ -275,3 +276,17 @@ class Graph<T> implements AdjacencyList<T> {
         }
     }
 }
+Graph<String> graph = new Graph<>();
+        graph.addNode("A");
+        graph.addNode("B");
+        graph.addNode("C");
+        graph.addNode("D");
+        graph.addNode("E");
+        
+        graph.addEdge("A", "B");
+        graph.addEdge("A", "C");
+        graph.addEdge("B", "D");
+        graph.addEdge("C", "D");
+        graph.addEdge("D", "E");
+        
+        graph.printGraph();
