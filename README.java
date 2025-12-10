@@ -1,408 +1,277 @@
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 
-/**
- * CS201 – Data Structures
- * Lab 11 – Red-Black Trees
- *
- * In this lab, you will:
- * - Implement a Red-Black Tree
- * - Maintain all RB Tree insertion properties
- * - Implement recoloring and rotations
- * - Ensure the tree remains balanced after each insertion
- *
- */
+public class Lab12 {
 
-public class Lab110 {
     public static void main(String[] args) {
-        RBTree<Integer> tree = new RBTree<>();
-        /* tree.insert(33);
-        tree.insert(13);
-        tree.insert(53);
-        tree.insert(11);
-        tree.insert(21);
-        tree.insert(41);
-        tree.insert(61);
-        tree.insert(15);
-        tree.insert(31); */
-
-        /* tree.insert(50);
-        tree.insert(20);
-        tree.insert(10); */
-
-        /* tree.insert(36);
-        tree.insert(15);
-        tree.insert(50);
-        tree.insert(70);
-        tree.insert(5);
-        tree.insert(30);
-        tree.insert(3);
-        tree.insert(6);
-        tree.insert(23);
-        tree.insert(33);
-        tree.insert(32); */
-        System.out.println(tree);
-
-        // You may test manually here if you want.
-        // Official testing will be done using JUnit tests.
+        // You may test your graph here manually.
+        // Official testing will be done with JUnit.
     }
 }
 
-class Node<E> {
-    E data;
-    Node<E> left, right, parent;
-    boolean color = true;   // true = RED, false = BLACK
+interface IUndirectedNode<T> {
+    void addNeighbor(Node<T> neighbor);
+    void removeNeighbor(Node<T> neighbor);
+}
 
-    public Node(E data) {
+
+class Node<T> implements IUndirectedNode<T> {
+    T data;
+    List<Node<T>> neighbors;
+
+    // BFS helper fields for easier implementation for shortest path method
+    boolean visited;
+    Node<T> parent;
+    
+    public Node(T data) {
         this.data = data;
-        this.color = true;  // new nodes start red
+        this.neighbors = new ArrayList<>();
+    }
+    
+    @Override
+    public void addNeighbor(Node<T> neighbor) {
+        neighbors.add(neighbor);
+    }
+    
+    @Override
+    public void removeNeighbor(Node<T> neighbor) {
+        neighbors.remove(neighbor);
     }
 
+    
     @Override
     public String toString() {
-        return String.format("[%s|%s]", data, color ? "R" : "B");
+        return data.toString();
     }
 }
 
-interface IList<E> {
-    boolean isEmpty();
-    int size();
+
+interface AdjacencyList<T> {
+    void addNode(T node);
+    void addEdge(T data1, T data2);
+    void removeNode(T data);
+    void removeEdge(T data1, T data2);
+    List<T> bfs(T startData);
+    List<T> dfs(T startData);
+    List<T> getShortestPath(T startData, T endData);
 }
 
-interface ITree<E> extends IList<E> {
-    void insert(E data);
-    boolean contains(E data);
-    //void remove(E data);
-}
+class Graph<T> implements AdjacencyList<T> {
+    private Map<T, Node<T>> nodes;
+    
+    public Graph() {
+        this.nodes = new HashMap<>();
+    }
 
-interface IBalancedTree<E> extends ITree<E> {
-    Node<E> rotateRight(Node<E> node);
-    Node<E> rotateLeft(Node<E> node);
-}
-
-interface IRBTree<E> extends IBalancedTree<E> {
-    void check(Node<E> node);
-    Node<E> balance(Node<E> node);
-    void recolor(Node<E> node);
-}
-
-class RBTree<E extends Comparable<E>> implements IRBTree<E> {
-    private Node<E> root;
-    private int size;
-
-    public RBTree() {}
-
+    
     @Override
-    public boolean isEmpty() {
-        // TODO: Return true if the tree is empty, false otherwise.
-        return root == null;
+    public void addNode(T data) {
+        /*
+         * TODO:
+         * Add a new node if it does not already exist.
+         * Store it inside nodes.
+         */
+        if (!nodes.containsKey(data)) {
+            Node<T> newNode = new Node<>(data);
+            nodes.put(data, newNode);
+        }
     }
-
+    
     @Override
-    public int size() {
-        // TODO: Return the number of elements in the tree.
-        return size;
+    public void addEdge(T data1, T data2) {
+        /*
+         * TODO:
+         * Ensure both nodes exist (create if needed).
+         * Add each node as a neighbor to the other (undirected graph).
+         */
+        if (!nodes.containsKey(data1)) {
+            addNode(data1);
+        }
+        if (!nodes.containsKey(data2)) {
+            addNode(data2);
+        }
+        
+        Node<T> node1 = nodes.get(data1);
+        Node<T> node2 = nodes.get(data2);
+        
+        node1.addNeighbor(node2);
+        node2.addNeighbor(node1);
     }
-
+    
     @Override
-    public Node<E> rotateLeft(Node<E> node) {
-        // TODO: Implement Left Rotation.
-        // 1. Identify the right child.
-        // 2. Turn the right child's left subtree into node's right subtree.
-        // 3. Update the parent pointer of that subtree (if it exists).
-        // 4. Link the new root (right child) to the node's parent.
-        //    (Be careful to check if node was the Root, or a left/right child).
-        // 5. Put 'node' as the left child of the new root.
-        // 6. Update parent pointers for both 'node' and the new root.
+    public void removeEdge(T data1, T data2) {
+        /*
+         * TODO:
+         * If both nodes exist:
+         * - Remove data2 from data1's neighbor list
+         * - Remove data1 from data2's neighbor list
+         */
+        Node<T> node1 = nodes.get(data1);
+        Node<T> node2 = nodes.get(data2);
         
-        Node<E> rightKid = node.right;
-        node.right = rightKid.left;
-        
-        if (rightKid.left != null) {
-            rightKid.left.parent = node;
+        if (node1 != null && node2 != null) {
+            node1.removeNeighbor(node2);
+            node2.removeNeighbor(node1);
         }
-        
-        rightKid.parent = node.parent;
-        
-        if (node.parent == null) {
-            root = rightKid;
-        } else if (node == node.parent.left) {
-            node.parent.left = rightKid;
-        } else {
-            node.parent.right = rightKid;
-        }
-        
-        rightKid.left = node;
-        node.parent = rightKid;
-        
-        return rightKid;
     }
-
+    
     @Override
-    public Node<E> rotateRight(Node<E> node) {
-        // TODO: Implement Right Rotation.
-        // 1. Identify the left child.
-        // 2. Turn the left child's right subtree into node's left subtree.
-        // 3. Update parent pointers.
-        // 4. Link the new root to the node's parent (Handle Root case).
-        // 5. Put 'node' as the right child of the new root.
-        // 6. Update parent pointers.
-
-        Node<E> leftKid = node.left;
-        node.left = leftKid.right;
+    public void removeNode(T data) {
+        /*
+         * TODO:
+         * If node exists:
+         * - Remove this node from all neighbor lists
+         * - Remove the node from nodes
+         */
+        Node<T> nodeToRemove = nodes.get(data);
         
-        if (leftKid.right != null) {
-            leftKid.right.parent = node;
-        }
-        
-        leftKid.parent = node.parent;
-        
-        if (node.parent == null) {
-            root = leftKid;
-        } else if (node == node.parent.right) {
-            node.parent.right = leftKid;
-        } else {
-            node.parent.left = leftKid;
-        }
-        
-        leftKid.right = node;
-        node.parent = leftKid;
-        
-        return leftKid;
-    }
-
-    private boolean isRed(Node<E> node) {
-        // TODO: Helper method.
-        // Return true if node is not null AND node.color is true.
-        // Return false otherwise (null nodes are Black).
-        return node != null && node.color == true;
-    }
-
-    private Node<E> getSibling(Node<E> node) {
-        // TODO: Helper method.
-        // If node is root, return null.
-        // Return the other child of node's parent.
-        if (node == null || node.parent == null) {
-            return null;
-        }
-        
-        if (node == node.parent.left) {
-            return node.parent.right;
-        } else {
-            return node.parent.left;
-        }
-    }
-
-    @Override
-    public void insert(E data) {
-        // TODO: Public insert method.
-        // 1. Handle empty tree case (Create root, increment size, force Black).
-        // 2. If not empty, call insertRec(root, data).
-        // 3. Ensure root is always Black at the end.
-        
-        if (root == null) {
-            root = new Node<>(data);
-            root.color = false;
-            size++;
-            return;
-        }
-        
-        insertRec(root, data);
-        root.color = false;
-    }
-
-    private void insertRec(Node<E> node, E data) {
-        // TODO: Recursive insertion (Standard BST logic).
-        // 1. Compare data with node.data.
-        // 2. Recurse Left or Right.
-        // 3. Base Case: If the spot is null, create a new Node, link it to parent.
-        // 4. CRITICAL: After creating the node, trigger check(newNode) to fix RB properties.
-        // Note: Do not use return values to link nodes (use parent pointers).
-        
-        int cmp = data.compareTo(node.data);
-        
-        if (cmp < 0) {
-            if (node.left == null) {
-                Node<E> freshNode = new Node<>(data);
-                node.left = freshNode;
-                freshNode.parent = node;
-                size++;
-                check(freshNode);
-            } else {
-                insertRec(node.left, data);
+        if (nodeToRemove != null) {
+            for (Node<T> neighbor : nodeToRemove.neighbors) {
+                neighbor.neighbors.remove(nodeToRemove);
             }
-        } else if (cmp > 0) {
-            if (node.right == null) {
-                Node<E> freshNode = new Node<>(data);
-                node.right = freshNode;
-                freshNode.parent = node;
-                size++;
-                check(freshNode);
-            } else {
-                insertRec(node.right, data);
-            }
+            nodes.remove(data);
         }
     }
-
+    
     @Override
-    public void check(Node<E> newNode) {
-        // TODO: The "Fixer" method.
-        // 1. Check if we have a violation (Is my parent Red?).
-        // 2. If valid, return.
-        // 3. If invalid, get the Uncle.
-        // 4. Case 1: Uncle is Red -> call recolor(), then recursively call check(grandparent).
-        // 5. Case 2/3: Uncle is Black -> call balance().
+    public List<T> bfs(T startData) {
+        /*
+         * TODO:
+         * Perform Breadth-First Search starting from startData.
+         *
+         * Steps:
+         * 1. Get starting Node
+         * 2. Use a Queue for BFS
+         * 3. Maintain a visited Set
+         * 4. Add nodes to result in order visited
+         */
+        List<T> result = new ArrayList<>();
+        Node<T> startNode = nodes.get(startData);
         
-        if (newNode == null || newNode.parent == null || !isRed(newNode.parent)) {
-            return;
+        if (startNode == null) {
+            return result;
         }
         
-        Node<E> dad = newNode.parent;
-        Node<E> grandpa = dad.parent;
+        Queue<Node<T>> queue = new LinkedList<>();
+        Set<Node<T>> visited = new HashSet<>();
         
-        if (grandpa == null) {
-            return;
-        }
+        queue.add(startNode);
+        visited.add(startNode);
         
-        Node<E> unc = getSibling(dad);
-        
-        if (isRed(unc)) {
-            recolor(grandpa);
-            check(grandpa);
-        } else {
-            balance(newNode);
-        }
-    }
-
-    @Override
-    public void recolor(Node<E> grandParent) {
-        // TODO: Case 1 Implementation.
-        // 1. Set Grandparent to Red (if not root).
-        // 2. Set Parent to Black.
-        // 3. Set Uncle to Black.
-        
-        if (grandParent != root) {
-            grandParent.color = true;
-        }
-        
-        if (grandParent.left != null) {
-            grandParent.left.color = false;
-        }
-        
-        if (grandParent.right != null) {
-            grandParent.right.color = false;
-        }
-    }
-
-    @Override
-    public Node<E> balance(Node<E> newNode) {
-        // TODO: Case 2 & 3 Implementation (Rotations).
-        // 1. Identify Parent and Grandparent.
-        // 2. Determine if Parent is a Left or Right child.
-        // 3. Determine if newNode is a Left or Right child (Inner vs Outer).
-        // 4. Perform Rotations:
-        //    - LL: rotateRight(grandParent)
-        //    - RR: rotateLeft(grandParent)
-        //    - LR: rotateLeft(parent) then rotateRight(grandParent)
-        //    - RL: rotateRight(parent) then rotateLeft(grandParent)
-        // 5. SWAP COLORS:
-        //    - The new root of this subtree becomes Black.
-        //    - The old Grandparent becomes Red.
-        // 6. Return the new subtree root.
-        
-        Node<E> dad = newNode.parent;
-        Node<E> grandpa = dad.parent;
-        
-        Node<E> newBoss = null;
-        
-        if (dad == grandpa.left) {
-            if (newNode == dad.right) {
-                rotateLeft(dad);
-                newNode = dad;
-                dad = newNode.parent;
-            }
-            newBoss = rotateRight(grandpa);
-        } else {
-            if (newNode == dad.left) {
-                rotateRight(dad);
-                newNode = dad;
-                dad = newNode.parent;
-            }
-            newBoss = rotateLeft(grandpa);
-        }
-        
-        newBoss.color = false;
-        grandpa.color = true;
-        
-        return newBoss;
-    }
-
-    @Override
-    public boolean contains(E data) {
-        return containsRec(root, data) != null;
-    }
-
-    private Node<E> containsRec(Node<E> node, E data) {
-        // TODO: Standard BST Search
-        if (node == null) {
-            return null;
-        }
-        
-        int cmp = data.compareTo(node.data);
-        
-        if (cmp < 0) {
-            return containsRec(node.left, data);
-        } else if (cmp > 0) {
-            return containsRec(node.right, data);
-        } else {
-            return node;
-        }
-    }
-
-    /* public void remove(E data) {
-        // Optional 
-    }
-
-    private Node<E> findMin(Node<E> node) {
-        // Helper for remove
-        return null;
-    } */
-
-    public void BFS(List<Node<E>> list) {
-        Queue<Node<E>> q = new LinkedList<>();
-        q.offer(root);
-
-        while(!q.isEmpty()) {
-            Node<E> current = q.poll();
-            list.add(current);
-            if (current != null) {
-                q.offer(current.left);
-                q.offer(current.right);
-            }
-        }
-    }
-
-    @Override
-    public String toString() {
-        LinkedList<Node<E>> list = new LinkedList<>();
-        this.BFS(list);
-
-        StringBuilder sbNodes = new StringBuilder();
-        StringBuilder sbIndexes = new StringBuilder();
-
-        for (int i = 0; i < list.size(); i++) {
-            Node<E> node = list.get(i);
-
-            String nodeStr = (node == null) ? "[null|B]" : node.toString();
-            String indexStr = String.valueOf(i);
-            int columnWidth = Math.max(nodeStr.length(), indexStr.length()) + 2;
-            String formatSpecifier = "%-" + columnWidth + "s";
+        while (!queue.isEmpty()) {
+            Node<T> currentNode = queue.poll();
+            result.add(currentNode.data);
             
-            sbNodes.append(String.format(formatSpecifier, nodeStr));
-            sbIndexes.append(String.format(formatSpecifier, indexStr));
+            for (Node<T> neighbor : currentNode.neighbors) {
+                if (!visited.contains(neighbor)) {
+                    queue.add(neighbor);
+                    visited.add(neighbor);
+                }
+            }
         }
-
-        return sbNodes.toString() + "\n" + sbIndexes.toString();
+        
+        return result;
+    }
+    
+    @Override
+    public List<T> dfs(T startData) {
+        /*
+         * TODO:
+         * Perform Depth-First Search (recursive or stack version).
+         *
+         * Steps:
+         * 1. Use a Set<Node> to track visited nodes
+         * 2. Visit node, then recursively visit neighbors
+         */
+        List<T> result = new ArrayList<>();
+        Node<T> startNode = nodes.get(startData);
+        
+        if (startNode == null) {
+            return result;
+        }
+        
+        Set<Node<T>> visited = new HashSet<>();
+        dfsHelper(startNode, visited, result);
+        
+        return result;
+    }
+    
+    private void dfsHelper(Node<T> current, Set<Node<T>> visited, List<T> result) {
+        /*
+         * TODO:
+         * Recursive DFS helper.
+         */
+        visited.add(current);
+        result.add(current.data);
+        
+        for (Node<T> neighbor : current.neighbors) {
+            if (!visited.contains(neighbor)) {
+                dfsHelper(neighbor, visited, result);
+            }
+        }
+    }
+    
+    @Override
+    public List<T> getShortestPath(T startData, T endData) {
+        /*
+         * TODO:
+         * Use BFS to compute shortest path in an unweighted graph.
+         *
+         * Steps:
+         * 1. BFS until reaching end node
+         * 2. Reconstruct path by following parent pointers
+         * 3. Reverse and return the path
+         */
+        List<T> path = new ArrayList<>();
+        Node<T> startNode = nodes.get(startData);
+        Node<T> endNode = nodes.get(endData);
+        
+        if (startNode == null || endNode == null) {
+            return path;
+        }
+        
+        for (T key : nodes.keySet()) {
+            Node<T> n = nodes.get(key);
+            n.visited = false;
+            n.parent = null;
+        }
+        
+        Queue<Node<T>> queue = new LinkedList<>();
+        queue.add(startNode);
+        startNode.visited = true;
+        
+        while (!queue.isEmpty()) {
+            Node<T> currentNode = queue.poll();
+            
+            if (currentNode.data.equals(endData)) {
+                Node<T> temp = currentNode;
+                while (temp != null) {
+                    path.add(temp.data);
+                    temp = temp.parent;
+                }
+                Collections.reverse(path);
+                return path;
+            }
+            
+            for (Node<T> neighbor : currentNode.neighbors) {
+                if (!neighbor.visited) {
+                    neighbor.visited = true;
+                    neighbor.parent = currentNode;
+                    queue.add(neighbor);
+                }
+            }
+        }
+        
+        return path;
+    }
+    
+    public void printGraph() {
+        for (T key : nodes.keySet()) {
+            System.out.print(key + " -> ");
+            Node<T> node = nodes.get(key);
+            for (Node<T> neighbor : node.neighbors) {
+                System.out.print(neighbor.data + " ");
+            }
+            System.out.println();
+        }
     }
 }
